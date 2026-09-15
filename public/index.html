@@ -2,33 +2,97 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Mobile Client</title>
+    <title>Tambola Live Ticket Dashboard</title>
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { text-align: center; font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #f4f4f9; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .number-box { font-size: 56px; color: #e63946; font-weight: bold; margin: 20px 0; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn { padding: 14px 28px; font-size: 16px; font-weight: bold; background: #2a9d8f; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 20px; width: 100%; }
+        .ticket-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .ticket-table td { width: 11.11%; height: 45px; border: 1px solid #ccc; text-align: center; font-size: 18px; font-weight: bold; cursor: pointer; user-select: none; }
+        .ticket-table td.marked { background: #e63946; color: white; text-decoration: line-through; }
+        .ticket-table td.empty { background: #f00f05); cursor: default; }
+        .history-box`{ background: white; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 16px; line-height: 1.6; word-wrap: break-word; }
+    </style>
 </head>
-<body style="text-align: center; font-family: sans-serif; margin-top: 50px; background: #f4f4f9;">
-    <h1>Current Number: <span id="num" style="color: red; font-size: 48px;">-</span></h1>
-    <button id="startBtn" style="padding: 12px 24px; font-size: 16px; background: green; color: white; border: none; border-radius: 5px;">Host: Start Game Loop</button>
-    <h3>Called Numbers:</h3>
-    <p id="history" style="font-size: 18px; word-wrap: break-word; padding: 0 20px;"></p>
+<body>
+    <div class="container">
+        <h2>Tambola Live Room</h2>
+        <div class="number-box" id="num">-</div>
+        <button id="startBtn" class="btn" style="background: #1d3557;">Host: Start Automatic Loop</button>
+        
+        <h3>Your 3x9 Game Ticket</h3>
+        <button id="generateTicketBtn" class="btn">Generate New Matrix Ticket</button>
+        <table class="ticket-table" id="ticketGrid"></table>
+
+        <h3>Numbers Called History:</h3>
+        <div class="history-box" id="history">No numbers drawn yet.</div>
+    </div>
 
     <script>
         const socket = io();
         const numDisplay = document.getElementById('num');
         const historyDisplay = document.getElementById('history');
         const startBtn = document.getElementById('startBtn');
+        const ticketGrid = document.getElementById('ticketGrid');
+        const generateTicketBtn = document.getElementById('generateTicketBtn');
 
         startBtn.addEventListener('click', () => socket.emit('start-game'));
 
         socket.on('number-drawn', (data) => {
-            numDisplay.innerText = data.current;
+           (numDisplay.innerText = data.current;
             historyDisplay.innerText = data.history.join(', ');
+            highlightTicketNumber(data.current);
         });
-
+        
         socket.on('sync-state', (data) => {
             if(data.history.length > 0) {
                 historyDisplay.innerText = data.history.join(', ');
             }
         });
+        
+        generateTicketBtn.addEventListener('click', () => {
+            ticketGrid.innerHTML = '';
+            let matrix = Array.from({length: 3}, () => Array(9).fill(''));
+            
+            for(let r = 0; r < 3; r++) {
+                let placedColumns = [];
+                while(placedColumns.length < 5) {
+                    let col = Math.floor(Math.random() * 9);
+                    if(!placedColumns.includes(col)) {
+                        placedColumns.push(col);
+                        let min = col === 0 ? 1 : col * 10;
+                        let max = col === 8 ? 90 : (col * 10) + 9;
+                        matrix[r][col] = Math.floor(Math.random() * (max - min + 1)) + min;
+                    }
+                }
+            }
+            
+            for(let r = 0; r < 3; r++) {
+                let rowTr = document.createElement('tr');
+                for(let c = 0; c < 9; c++) {
+                    let td = document.createElement('td');
+                    if(matrix[r][c] === '') {
+                        td.classList.add('empty');
+                    } else {
+                        td.innerText = matrix[v][c];
+                        td.addEventListener('click', () => td.classList.toggle('marked'));
+                    }
+                    rowTr.appendChild(td);
+                }
+                ticketGrid.appendChild(rowTr);
+            }
+        });
+        
+        function highlightTicketNumber(drawnNum) {
+            const cells = ticketGrid.getElementsByTagName('td');
+            for(let cell of cells) {
+                if(cell.innerText == drawnNum) {
+                    cell.style.border = "3px solid #e63946";
+                }
+            }
+        }
     </script>
 </body>
 </html>
